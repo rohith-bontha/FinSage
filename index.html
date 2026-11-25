@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101820">
+  <meta name="description" content="Turn financial software project ideas into a traceable SDLC recommendation and a reviewable requirements document pack.">
+  <title>FinSage — Requirements Studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="FinSage home"><span class="brand-mark">F</span><span>finsage<span class="brand-dot">.</span></span></a>
+    <div class="topbar-right"><span class="local-badge"><i></i> Private workspace</span><button id="resetBtn" class="quiet-button" type="button">New project</button></div>
+  </header>
+  <main id="top" class="shell">
+    <section class="intro">
+      <div class="eyebrow"><span>FINANCIAL SOFTWARE PLANNING</span><span class="eyebrow-line"></span><span>REQUIREMENTS STUDIO</span></div>
+      <h1>From project brief<br>to <em>clear direction.</em></h1>
+      <p class="intro-copy">Describe your financial software project. Get a reasoned SDLC recommendation and a set of requirements documents your team can review, edit, and take forward.</p>
+      <div class="trust-row"><span>01 &nbsp; Describe</span><span>02 &nbsp; Analyze</span><span>03 &nbsp; Review & export</span></div>
+    </section>
+
+    <section class="workspace-grid" aria-label="Project analysis workspace">
+      <form id="projectForm" class="panel input-panel">
+        <div class="panel-heading"><div><div class="step-label"><span>STEP 01</span><span class="step-rule"></span><span>PROJECT CONTEXT</span></div><h2>Tell us what you’re building</h2></div><span class="required-note">* Required</span></div>
+        <label class="field-label" for="projectName">Project name <span>*</span></label>
+        <input id="projectName" name="projectName" maxlength="100" required placeholder="e.g. Digital lending platform">
+        <div class="field-row">
+          <div><label class="field-label" for="domain">Financial use case <span>*</span></label><select id="domain" name="domain" required><option value="">Choose a use case</option><option>Digital banking</option><option>Loan processing</option><option>Payment processing</option><option>Fraud detection</option><option>Insurance</option><option>Regulatory reporting</option><option>Customer onboarding / KYC</option><option>Financial data analytics</option><option>Other financial software</option></select></div>
+          <div><label class="field-label" for="jurisdiction">Jurisdiction</label><input id="jurisdiction" name="jurisdiction" placeholder="e.g. India, United States"></div>
+        </div>
+        <label class="field-label" for="description">Project description <span>*</span></label>
+        <textarea id="description" name="description" required rows="5" maxlength="5000" placeholder="What problem does this solve? Who will use it? What should it do?"></textarea><div class="field-hint"><span>Include goals, users, integrations, or constraints you already know.</span><span id="charCount">0 / 5000</span></div>
+        <div class="field-row three-col">
+          <div><label class="field-label" for="volatility">Requirement change</label><select id="volatility"><option value="medium">Some change expected</option><option value="low">Mostly stable</option><option value="high">Frequent change</option></select></div>
+          <div><label class="field-label" for="risk">Risk / criticality</label><select id="risk"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
+          <div><label class="field-label" for="delivery">Delivery cadence</label><select id="delivery"><option value="continuous">Frequent releases</option><option value="periodic">Planned releases</option><option value="oneoff">One major release</option></select></div>
+        </div>
+        <div class="privacy-note"><span class="lock-icon">▣</span><span>Your project stays in this browser. This demo does not send your inputs to a server.</span></div>
+        <button class="primary-button" type="submit"><span>Generate project analysis</span><span aria-hidden="true">↗</span></button>
+      </form>
+
+      <aside class="side-column">
+        <div class="panel guide-panel"><div class="guide-icon">✳</div><div class="step-label"><span>BUILT FOR COMPLEXITY</span></div><h3>Financial projects deserve more than a guess.</h3><p>Recommendations account for change, delivery pressure, security exposure, and the need for clear review gates.</p><div class="guide-divider"></div><div class="guide-points"><span><b>01</b> Evidence-linked requirements</span><span><b>02</b> Human approval checkpoints</span><span><b>03</b> Exportable project documents</span></div></div>
+        <div class="mini-stat"><div class="mini-stat-mark">◎</div><div><strong>Decision support, with context</strong><p>See the factors behind each recommendation and what still needs an expert decision.</p></div></div>
+      </aside>
+    </section>
+
+    <section id="results" class="results-section hidden" aria-live="polite">
+      <div class="results-heading"><div><div class="step-label"><span>STEP 02</span><span class="step-rule"></span><span>YOUR PROJECT ANALYSIS</span></div><h2 id="resultTitle">Recommendation</h2></div><button class="secondary-button" id="printBtn" type="button">Print / save as PDF <span>↗</span></button></div>
+      <div id="recommendation" class="recommendation-card"></div>
+      <div class="results-grid"><div class="panel factors-panel"><div class="section-topline"><h3>What shaped the recommendation</h3><span class="provisional-pill">PROVISIONAL</span></div><div id="factorList"></div><div class="caveat-box"><strong>Before you decide</strong><p>Confirm jurisdiction, data handling, system criticality, and applicable controls with your security, compliance, and architecture teams. This tool does not make legal or compliance determinations.</p></div></div>
+        <div class="panel docs-panel"><div class="docs-header"><div><div class="step-label"><span>STEP 03</span><span class="step-rule"></span><span>GENERATED DELIVERABLES</span></div><h3>Your document pack</h3><p>Editable drafts linked to your project context.</p></div><button id="downloadAll" class="download-all" type="button">Download pack <span>↓</span></button></div><div id="docList" class="doc-list"></div><div class="docs-footnote">Drafts require stakeholder review before they become an approved project baseline.</div></div></div>
+      <div class="review-banner"><span class="review-symbol">✓</span><div><strong>Keep people in the loop.</strong><p>AI-generated requirements and control mappings are starting points. Your authorized teams own final decisions.</p></div></div>
+    </section>
+    <footer><span>FINSAGE &nbsp;·&nbsp; REQUIREMENTS STUDIO</span><span>Drafts for review · No legal advice or compliance certification</span></footer>
+  </main>
+  <dialog id="documentDialog" class="document-dialog"><form method="dialog" class="dialog-head"><div><span class="step-label">DOCUMENT REVIEW</span><h2 id="dialogTitle">Document title</h2></div><button class="dialog-close" aria-label="Close document editor">×</button></form><div class="dialog-body"><p id="dialogHint">Review or edit this generated draft. Your changes are included in downloads for this session.</p><textarea id="documentEditor" spellcheck="true" aria-label="Editable document content"></textarea><div class="dialog-actions"><button type="button" id="saveDoc" class="primary-button">Save changes <span>✓</span></button><button type="button" id="downloadCurrent" class="secondary-button">Download this document ↓</button></div></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
