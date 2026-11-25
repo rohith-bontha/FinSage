@@ -136,7 +136,15 @@ def recommend(
         SdlcOption(name="Incremental", score=_score(46, [(iterative, 18), (complex_project, 12), (prototype_helpful, 10), (customer_available, 8), (time_pressure, 8)]), suitability="Best when value can be divided into validated, independently testable increments."),
         SdlcOption(name="Agile", score=_score(45, [(iterative, 22), (customer_available, 18), (prototype_helpful, 12), (unclear, 10), (high_risk_or_analysis, 3)]), suitability="Best for frequent feedback and evolving requirements, with planned governance for high-risk work."),
     ]
-    options.sort(key=lambda option: option.score, reverse=True)
+    # Formal verification evidence is a meaningful tie-breaker for high-risk
+    # work; do not let a saturated score make Waterfall appear equally suitable.
+    options.sort(
+        key=lambda option: (
+            option.score,
+            option.name == "V-Shape" and formal_verification and high_risk_or_analysis,
+        ),
+        reverse=True,
+    )
     choice = options[0].name
     factor_summary = ", ".join(f"{factor.name.lower()} is {factor.value.lower()}" for factor in factors[:5])
     return SdlcRecommendation(

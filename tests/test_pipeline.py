@@ -222,6 +222,7 @@ def test_interview_question_endpoint_uses_llm_agent(monkeypatch):
             "functionality": "Online loan approval",
             "answers": {"business objective": "Process loan applications securely."},
             "asked_question_keys": ["workflow and outcomes"],
+                "use_llm": True,
         },
     )
 

@@ -173,6 +173,7 @@ class Project(BaseModel):
     id: str
     functionality: str
     created_at: datetime
+    external_processing_consent: bool = False
     documents: list[dict] = Field(default_factory=list)
     requirements: list[Requirement] = Field(default_factory=list)
     quality_issues: list[QualityIssue] = Field(default_factory=list)

@@ -134,6 +134,7 @@ def next_interview_question(request: InterviewQuestionRequest) -> InterviewQuest
 async def create_project(
     functionality: str = Form(...),
     stakeholder_input: str = Form("{}"),
+    use_llm: bool = Form(False),
     files: list[UploadFile] = File(default=[]),
 ) -> JSONResponse:
     functionality = functionality.strip()
@@ -179,9 +180,11 @@ async def create_project(
         doc_id = f"DOC-{project_source_count + 1:03d}"
         documents.append({"id": doc_id, "name": upload.filename, "chunks": [chunk.__dict__ for chunk in chunk_text(text)]})
         project_source_count += 1
-    project = Project(id=uuid4().hex[:12], functionality=functionality, created_at=datetime.now(timezone.utc), documents=documents)
+    if use_llm and not llm_enabled():
+        raise HTTPException(503, "Optional external generation is not configured.")
+    project = Project(id=uuid4().hex[:12], functionality=functionality, created_at=datetime.now(timezone.utc), documents=documents, external_processing_consent=use_llm)
     try:
-        indexed_chunks = vector_store.index(project.id, documents)
+        indexed_chunks = vector_store.index(project.id, documents, allow_external=use_llm)
     except RagConfigurationError as exc:
         raise HTTPException(503, str(exc)) from exc
     audit(project, "sources_recorded", f"Indexed {knowledge_document_count} allowlisted RBI reference summary source(s), plus {len(answers)} masked stakeholder response(s) and {len(uploads)} uploaded document(s).")
@@ -204,7 +207,7 @@ def retrieve_evidence(project_id: str, query: str | None = None) -> JSONResponse
     if len(search_query) < 3:
         raise HTTPException(422, "Enter a retrieval query of at least three characters.")
     try:
-        evidence = vector_store.retrieve(project.id, search_query)
+        evidence = vector_store.retrieve(project.id, mask_sensitive(search_query) if project.external_processing_consent else search_query, allow_external=project.external_processing_consent)
     except RagConfigurationError as exc:
         raise HTTPException(503, str(exc)) from exc
     return JSONResponse({"query": search_query, "matches": evidence, "count": len(evidence)})
@@ -217,15 +220,15 @@ def generate_requirements(project_id: str) -> JSONResponse:
     except KeyError as exc:
         raise HTTPException(404, "Project not found.") from exc
     try:
-        evidence = vector_store.retrieve(project.id, project.functionality)
+        evidence = vector_store.retrieve(project.id, mask_sensitive(project.functionality) if project.external_processing_consent else project.functionality, allow_external=project.external_processing_consent)
     except RagConfigurationError as exc:
         raise HTTPException(503, str(exc)) from exc
     if not evidence:
         raise HTTPException(422, "No retrievable evidence was found in the uploaded documents.")
     generation_mode = "evidence-only"
-    if llm_enabled():
+    if project.external_processing_consent and llm_enabled():
         try:
-            generated_requirements = generate_llm_requirements(project.functionality, evidence)
+            generated_requirements = generate_llm_requirements(mask_sensitive(project.functionality), evidence)
             generation_mode = "LLM-assisted"
         except (RuntimeError, ValueError) as exc:
             generated_requirements = generate_evidence_drafts(project.functionality, evidence)

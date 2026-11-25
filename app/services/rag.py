@@ -51,11 +51,11 @@ def embedding_provider_configured() -> bool:
     return host != "api.groq.com" and not host.endswith(".groq.com")
 
 
-def _embed(texts: list[str]) -> list[list[float]]:
+def _embed(texts: list[str], allow_external: bool = False) -> list[list[float]]:
     """Embed with the configured provider, retaining local retrieval on provider failures."""
     if not texts:
         return []
-    if not embedding_provider_configured():
+    if not allow_external or not embedding_provider_configured():
         return [_local_embed(text) for text in texts]
     payload = {"model": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"), "input": texts}
     base_url = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/")
@@ -188,7 +188,7 @@ class VectorStore:
             "collection_scope": "One persistent collection per project",
         }
 
-    def index(self, project_id: str, documents: list[dict]) -> int:
+    def index(self, project_id: str, documents: list[dict], allow_external: bool = False) -> int:
         ids: list[str] = []
         texts: list[str] = []
         metadata: list[dict[str, str]] = []
@@ -203,7 +203,7 @@ class VectorStore:
                 })
         if not texts:
             raise RagConfigurationError("No text chunks were available for semantic indexing.")
-        if not embedding_provider_configured():
+        if not allow_external or not embedding_provider_configured():
             return self._index_local(project_id, ids, texts, metadata)
         try:
             if self.client is None:
@@ -211,15 +211,15 @@ class VectorStore:
             collection = self.client.get_or_create_collection(
                 self._collection_name(project_id), metadata={"hnsw:space": "cosine"}
             )
-            collection.upsert(ids=ids, documents=texts, metadatas=metadata, embeddings=_embed(texts))
+            collection.upsert(ids=ids, documents=texts, metadatas=metadata, embeddings=_embed(texts, allow_external=True))
         except RagConfigurationError:
             raise
         except Exception as exc:
             raise RagConfigurationError("The vector database could not index the project sources.") from exc
         return len(texts)
 
-    def retrieve(self, project_id: str, query: str, limit: int = 6) -> list[dict]:
-        if not embedding_provider_configured():
+    def retrieve(self, project_id: str, query: str, limit: int = 6, allow_external: bool = False) -> list[dict]:
+        if not allow_external or not embedding_provider_configured():
             return self._retrieve_local(project_id, query, limit)
         try:
             if self.client is None:
@@ -229,7 +229,7 @@ class VectorStore:
             raise RagConfigurationError("The project's vector collection is unavailable. Recreate the project to index its sources.") from exc
         try:
             result = collection.query(
-                query_embeddings=_embed([query]),
+                query_embeddings=_embed([query], allow_external=True),
                 n_results=min(limit, collection.count()),
                 include=["documents", "metadatas", "distances"],
             )

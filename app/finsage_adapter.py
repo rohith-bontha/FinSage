@@ -155,18 +155,19 @@ def build_router(*, store, vector_store, requirements_agent, compliance_risk_age
             if source.get("approved") and str(source.get("text", "")).strip():
                 text = mask_sensitive(str(source["text"]))
                 documents.append({"id": str(source.get("id") or f"KB-{len(documents)+1:03d}"), "name": str(source.get("title") or source.get("name") or "Approved knowledge source"), "version": source.get("version", "Unknown"), "jurisdiction": source.get("jurisdiction", "Not specified"), "effective_date": source.get("effectiveDate"), "source_url": source.get("authority"), "chunks": [chunk.__dict__ for chunk in chunk_text(text)]})
-        project = Project(id=project_id, functionality=functionality, created_at=datetime.now(timezone.utc), documents=documents)
-        try:
-            indexed = vector_store.index(project.id, documents)
-            evidence = vector_store.retrieve(project.id, functionality)
-        except RagConfigurationError as exc:
-            raise HTTPException(503, str(exc)) from exc
         if payload.get("useLlm") is True and not llm_enabled():
             raise HTTPException(503, "Optional external generation is not configured. Set LLM_API_KEY or OPENAI_API_KEY, then restart the server.")
         use_llm = payload.get("useLlm") is True and llm_enabled()
+        project = Project(id=project_id, functionality=functionality, created_at=datetime.now(timezone.utc), documents=documents, external_processing_consent=use_llm)
+        try:
+            indexed = vector_store.index(project.id, documents, allow_external=use_llm)
+            safe_functionality = mask_sensitive(functionality)
+            evidence = vector_store.retrieve(project.id, safe_functionality, allow_external=use_llm)
+        except RagConfigurationError as exc:
+            raise HTTPException(503, str(exc)) from exc
         if use_llm:
             try:
-                candidates = generate_llm_requirements(functionality, evidence)
+                candidates = generate_llm_requirements(safe_functionality, evidence)
             except (RuntimeError, ValueError):
                 candidates = generate_evidence_drafts(functionality, evidence)
         else:

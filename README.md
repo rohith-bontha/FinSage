@@ -31,7 +31,7 @@ Open http://127.0.0.1:8000. FastAPI documentation is available at http://127.0.0
 ## Workflow
 
 1. Enter the financial use case, project context, jurisdiction, SDLC factors, and role-specific interview answers.
-2. Upload `.txt`, `.md`, `.csv`, `.pdf`, or `.docx` evidence. The backend masks common sensitive number patterns, chunks the text, and indexes source evidence for retrieval.
+2. Upload `.txt`, `.md`, `.csv`, `.json`, `.pdf`, or `.docx` evidence. The backend masks common sensitive number patterns, chunks the text, and indexes source evidence for retrieval.
 3. FinSage retrieves evidence, generates traceable draft requirements, classifies them, checks quality, prepares risk and candidate RBI mappings, and derives project artefacts.
 4. Review the evidence, requirements, clarification queue, control suggestions, SDLC alternatives, and gates. Record human decisions before adopting a baseline.
 5. Edit and download the generated Markdown document pack. Use **Download SRS Word** for a locally generated Word SRS. Save project snapshots and export audit JSON from the UI.
