@@ -26,7 +26,7 @@ def classify(text: str) -> list[Category]:
 def _candidate_sentences(chunks: list[dict]) -> list[tuple[dict, str]]:
     candidates = []
     for chunk in chunks:
-        for sentence in re.split(r"(?<=[.!?])\s+", chunk["text"]):
+        for sentence in re.split(r"(?<=[.!?])\s+|\n+", chunk["text"]):
             if len(sentence) >= 35 and re.search(r"\b(shall|must|should|will|require|ensure|support|allow)\b", sentence, re.I):
                 candidates.append((chunk, sentence.strip()))
     return candidates

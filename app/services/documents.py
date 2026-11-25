@@ -40,17 +40,25 @@ def extract_text(filename: str, content: bytes) -> str:
     if suffix == "docx":
         with zipfile.ZipFile(BytesIO(content)) as archive:
             root = ElementTree.fromstring(archive.read("word/document.xml"))
-        return "\n".join(node.text or "" for node in root.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t"))
+        paragraph_tag = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p"
+        text_tag = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t"
+        paragraphs = [
+            "".join(node.text or "" for node in paragraph.iter(text_tag))
+            for paragraph in root.iter(paragraph_tag)
+        ]
+        return "\n".join(paragraph for paragraph in paragraphs if paragraph.strip())
     raise ValueError("Supported formats are .txt, .md, .csv, .json, .pdf, and .docx")
 
 
 def chunk_text(text: str, size: int = 700) -> list[Chunk]:
-    normalized = re.sub(r"\s+", " ", text).strip()
-    sentences = re.split(r"(?<=[.!?])\s+", normalized)
+    # Keep paragraph boundaries so document titles and headings do not get
+    # glued to the first requirement sentence during extraction.
+    normalized = re.sub(r"[ \t]+", " ", text).strip()
+    sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+|\n+", normalized) if part.strip()]
     chunks: list[Chunk] = []
     current = ""
     for sentence in sentences:
-        candidate = f"{current} {sentence}".strip()
+        candidate = f"{current}\n{sentence}".strip()
         if current and len(candidate) > size:
             chunks.append(Chunk(id=f"chunk-{len(chunks) + 1:03d}", text=current))
             current = sentence

@@ -94,7 +94,7 @@ def build_router(*, store, vector_store, requirements_agent, compliance_risk_age
             "workflow": workflow, "clarifications": clarification,
             "agents": [{"name": run.agent, "status": run.status, "summary": run.output, "items": 0, "version": "1.0"} for run in project.agent_runs],
             "derivedArtefacts": json.loads(json.dumps(project.artefacts, ensure_ascii=False)),
-            "metrics": {"extracted": len(reqs), "completeness": round(evaluation.get("measurable_acceptance_coverage", 0) * 100),
+            "metrics": {"extracted": len(reqs), "measurableAcceptanceCriteria": round(evaluation.get("measurable_acceptance_coverage", 0) * 100),
                         "traceability": round(evaluation.get("citation_coverage", 0) * 100),
                         "ambiguityFlags": sum("ambigu" in item["type"].lower() for item in issues),
                         "conflictFlags": sum("conflict" in item["type"].lower() for item in issues),

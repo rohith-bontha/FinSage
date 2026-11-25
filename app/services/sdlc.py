@@ -146,7 +146,11 @@ def recommend(
         reverse=True,
     )
     choice = options[0].name
-    factor_summary = ", ".join(f"{factor.name.lower()} is {factor.value.lower()}" for factor in factors[:5])
+    factor_summary = ", ".join(
+        f"{factor.name.lower()} needs validation" if factor.value == "Needs validation"
+        else f"{factor.name.lower()} is {factor.value.lower()}"
+        for factor in factors[:5]
+    )
     return SdlcRecommendation(
         recommended_sdlc=choice,
         factors=factors,
