@@ -22,7 +22,7 @@ Open http://127.0.0.1:8000. FastAPI documentation is available at http://127.0.0
 - `app/finsage_adapter.py` — connects the retained FinSage screens to the reference agents and persistent project store
 - `app/schemas.py` — validated project, evidence, requirement, risk, SDLC, and approval models
 - `app/services/` — document extraction/masking, RAG/vector storage, LLM integration, requirements quality, compliance, risk, SDLC, evaluation, storage, SRS, and derived artefacts
-- `app/prompts/` — structured generation and interview prompts
+- `app/prompts/` — prompt used for optional LLM requirement generation
 - `requirements.txt` — Python dependencies
 - `sample_data/` — sample source material
 - `tests/` — reference backend test suite
