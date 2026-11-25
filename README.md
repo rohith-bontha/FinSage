@@ -1,50 +1,58 @@
-# FinSage Requirements Studio
+# FinSage — Financial Requirements Studio
 
-A local full-stack project-planning tool for financial software teams. The website generates a heuristic SDLC recommendation and editable first-draft documents. A Node.js backend serves the app and saves/reopens project snapshots on the same computer.
+FinSage keeps its original web interface and uses the Python multi-agent, RAG, storage, and document-generation backend from the user-authorized Software-eng-project- repository. The browser UI is served by FastAPI; retrieved evidence and draft outputs remain advisory and require human review.
 
-## Run it
+## Run locally (Windows PowerShell)
 
-Requires Node.js 18 or newer. No third-party packages or API keys are needed.
+Requires Python 3.11 or later.
 
-1. In a terminal, change to this project folder.
-2. Run `npm start`.
-3. Open [http://127.0.0.1:3000](http://127.0.0.1:3000) in a browser.
-4. Enter a project name, use case, and description; provide jurisdiction and delivery context where known.
-5. Choose **Generate project analysis**, then **Save project** to persist it locally. Use the saved-project list to reopen it later.
-6. Review and edit each document in the page. Download documents individually as Markdown, or download the combined pack.
-7. Use **Print / save as PDF** to save a browser-rendered analysis summary.
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
 
-The server binds to `127.0.0.1` by default. Project snapshots are stored in `data/projects.json` on this computer; that file is git-ignored. The project description and generated artifacts are stored as local JSON without encryption. Use sample or anonymized inputs only; do not store real customer, account, or regulated data in this prototype.
+Open http://127.0.0.1:8000. FastAPI documentation is available at http://127.0.0.1:8000/docs. The local JSON project store and SQLite vector index live under `data/`; runtime data and `.env` are excluded from Git.
+
+## Project structure
+
+- `index.html`, `styles.css`, `app.js` — FinSage frontend retained from the existing project
+- `app/main.py` — FastAPI application and the reference project's API routes
+- `app/finsage_adapter.py` — connects the retained FinSage screens to the reference agents and persistent project store
+- `app/schemas.py` — validated project, evidence, requirement, risk, SDLC, and approval models
+- `app/services/` — document extraction/masking, RAG/vector storage, LLM integration, requirements quality, compliance, risk, SDLC, evaluation, storage, SRS, and derived artefacts
+- `app/prompts/` — structured generation and interview prompts
+- `requirements.txt` — Python dependencies
+- `sample_data/` — sample source material
+- `tests/` — reference backend test suite
+- `docs/` — FinSage project documentation package
+
+## Workflow
+
+1. Enter the financial use case, project context, jurisdiction, SDLC factors, and role-specific interview answers.
+2. Upload `.txt`, `.md`, `.csv`, `.pdf`, or `.docx` evidence. The backend masks common sensitive number patterns, chunks the text, and indexes source evidence for retrieval.
+3. FinSage retrieves evidence, generates traceable draft requirements, classifies them, checks quality, prepares risk and candidate RBI mappings, and derives project artefacts.
+4. Review the evidence, requirements, clarification queue, control suggestions, SDLC alternatives, and gates. Record human decisions before adopting a baseline.
+5. Edit and download the generated Markdown document pack. Use **Download SRS Word** for a locally generated Word SRS. Save project snapshots and export audit JSON from the UI.
+
+The prototype uses local hashed embeddings and a persistent SQLite index without an API key. Optional OpenAI-compatible generation or embeddings can be configured through environment variables:
+
+```text
+LLM_API_KEY=your_authorized_provider_key
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_MODEL=gpt-4o-mini
+EMBEDDING_MODEL=text-embedding-3-small
+APP_DATA_DIR=data
+VECTOR_DB_PATH=data/chroma
+```
+
+`OPENAI_API_KEY` is accepted as an alternative to `LLM_API_KEY`. The FinSage UI leaves external generation off until the user selects the consent option. Never place credentials in source files or committed project data.
 
 ## Backend API
 
-- `GET /api/health` — service status
-- `GET /api/projects` — saved project summaries
-- `POST /api/projects` — save a new project snapshot
-- `GET /api/projects/:id` — load a saved project
-- `PUT /api/projects/:id` — update its project details, recommendation, or documents
+The reference backend exposes RAG status, approved RBI source-register information, adaptive interview questions, evidence retrieval, requirement generation and approval, SDLC recommendation and approval, SRS Word generation, artefacts, evaluation, and project JSON export. The adapter adds the endpoints used by the retained UI: `/api/analyze`, `/api/interview-guides`, and `/api/project-snapshots`.
 
-The API validates required fields and request size. Project analysis uses transparent browser-side heuristic rules; the backend does not call an LLM or make compliance determinations.
+## Security and use limits
 
-## Generated outputs
-
-- Software Requirements Specification (SRS)
-- SDLC recommendation, alternatives, and project workflow
-- User stories and acceptance criteria
-- Use cases
-- Initial risk register
-- Candidate compliance and control mapping
-- Requirements Traceability Matrix (RTM)
-- Assumptions, dependencies, and open issues
-
-The recommendation uses transparent, lightweight rules based on supplied inputs. It is decision support, not an AI/LLM analysis, validated forecast, legal opinion, or compliance certification. The drafts are generic starting points and need review by project stakeholders.
-
-## Files
-
-- `index.html` — page structure and accessible controls
-- `styles.css` — responsive visual design and print styles
-- `app.js` — local recommendation logic and artifact generation
-- `server.js` — dependency-free Node.js HTTP server and JSON project API
-- `package.json` — start command and Node.js version requirement
-- `data/projects.json` — created at runtime for local project persistence (not committed)
-- `docs/` — initial project-specific planning document drafts
+This is a local advisory prototype. It does not provide authenticated user accounts, enforceable RBAC/MFA, encrypted-at-rest project storage, or tamper-proof audit logs. Reviewer labels are not verified identities. RBI mappings are candidate suggestions from a limited versioned summary catalogue; they are not legal advice, a determination of applicability, or compliance certification. Review all sources and outputs with authorized business, security, privacy, architecture, operations, and compliance/legal stakeholders. Use only synthetic, anonymized, or institution-approved information.
