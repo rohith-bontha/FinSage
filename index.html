@@ -37,7 +37,7 @@
           <div><label class="field-label" for="risk">Risk / criticality</label><select id="risk"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
           <div><label class="field-label" for="delivery">Delivery cadence</label><select id="delivery"><option value="continuous">Frequent releases</option><option value="periodic">Planned releases</option><option value="oneoff">One major release</option></select></div>
         </div>
-        <div class="privacy-note"><span class="lock-icon">▣</span><span>Your project stays in this browser. This demo does not send your inputs to a server.</span></div>
+        <div class="privacy-note"><span class="lock-icon">▣</span><span>Projects save to this computer’s local server only. Avoid entering live customer or account data.</span></div>
         <button class="primary-button" type="submit"><span>Generate project analysis</span><span aria-hidden="true">↗</span></button>
       </form>
 
@@ -48,7 +48,8 @@
     </section>
 
     <section id="results" class="results-section hidden" aria-live="polite">
-      <div class="results-heading"><div><div class="step-label"><span>STEP 02</span><span class="step-rule"></span><span>YOUR PROJECT ANALYSIS</span></div><h2 id="resultTitle">Recommendation</h2></div><button class="secondary-button" id="printBtn" type="button">Print / save as PDF <span>↗</span></button></div>
+      <div class="results-heading"><div><div class="step-label"><span>STEP 02</span><span class="step-rule"></span><span>YOUR PROJECT ANALYSIS</span></div><h2 id="resultTitle">Recommendation</h2></div><div class="result-actions"><button class="primary-button save-project-button" id="saveProject" type="button">Save project <span>↓</span></button><button class="secondary-button" id="printBtn" type="button">Print / save as PDF <span>↗</span></button></div></div>
+      <div class="saved-row"><span id="saveStatus">Checking local project service…</span><div><select id="savedProjects" aria-label="Saved projects"><option value="">Load a saved project…</option></select><button class="secondary-button" id="loadProject" type="button">Load</button></div></div>
       <div id="recommendation" class="recommendation-card"></div>
       <div class="results-grid"><div class="panel factors-panel"><div class="section-topline"><h3>What shaped the recommendation</h3><span class="provisional-pill">PROVISIONAL</span></div><div id="factorList"></div><div class="caveat-box"><strong>Before you decide</strong><p>Confirm jurisdiction, data handling, system criticality, and applicable controls with your security, compliance, and architecture teams. This tool does not make legal or compliance determinations.</p></div></div>
         <div class="panel docs-panel"><div class="docs-header"><div><div class="step-label"><span>STEP 03</span><span class="step-rule"></span><span>GENERATED DELIVERABLES</span></div><h3>Your document pack</h3><p>Editable drafts linked to your project context.</p></div><button id="downloadAll" class="download-all" type="button">Download pack <span>↓</span></button></div><div id="docList" class="doc-list"></div><div class="docs-footnote">Drafts require stakeholder review before they become an approved project baseline.</div></div></div>

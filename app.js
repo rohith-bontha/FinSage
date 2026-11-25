@@ -5,6 +5,9 @@
   const docs = [];
   let toastTimer;
   let activeDocument = null;
+  let currentProjectId = null;
+  let currentProject = null;
+  let currentRecommendation = null;
 
   const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const slug = (value) => String(value || 'project').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0,55) || 'project';
@@ -85,22 +88,66 @@
       {id:'open',title:'Assumptions & Open Issues',type:'OPEN',description:'Decisions, dependencies, and questions to resolve',content:open}
     ];
   }
-  function render(p,r) {
+  function render(p,r,savedDocs=null) {
     const result=$('#results'); result.classList.remove('hidden');
+    currentProject=p; currentRecommendation=r;
     $('#resultTitle').textContent=p.name+' — recommendation';
     $('#recommendation').innerHTML=`<div><div class="rec-overline">RECOMMENDED SOFTWARE DEVELOPMENT APPROACH</div><h3 class="rec-title">${safe(r.primary)}</h3><p class="rec-summary">${safe(r.explanation)}</p><span class="rec-badge">✳ &nbsp; HUMAN REVIEW REQUIRED</span><div class="alternatives"><span>OTHER FITS</span>${r.ranked.map(x=>`<span class="alternative-chip">${safe(x.name)} <b>${x.score}</b></span>`).join('')}<small>Fit scores are heuristic indicators, not probabilities.</small></div></div><div class="rec-side"><span>RECOMMENDATION CONFIDENCE</span><strong>${safe(r.certainty.split(' · ')[0])}</strong><p>${safe(r.certainty.split(' · ').slice(1).join(' · ')||'Validate with project stakeholders before adoption.')}</p><p style="margin-top:9px">${safe(p.domain)} · ${safe(p.jurisdiction)}</p></div>`;
     const factors=[['Requirements change',p.volatility,p.volatility==='high'?88:p.volatility==='low'?32:60],['Security & criticality',p.risk,p.risk==='high'?92:p.risk==='medium'?61:30],['Delivery cadence',p.delivery,p.delivery==='continuous'?90:p.delivery==='periodic'?58:34],['Regulatory context',p.jurisdiction==='To be confirmed'?'Needs confirmation':'Provided',p.jurisdiction==='To be confirmed'?35:68],['Technical uncertainty',r.signals.uncertainty?'Potentially elevated':'Needs discovery',r.signals.uncertainty?74:42]];
     $('#factorList').className='factor-list'; $('#factorList').innerHTML=factors.map(([name,value,width])=>`<div class="factor"><span class="factor-name">${safe(name)}</span><span class="factor-value">${safe(titleCase(String(value).replace(/-/g,' ')))}</span><div class="factor-track"><div class="factor-fill" style="width:${width}%"></div></div></div>`).join('');
-    docs.splice(0,docs.length,...makeDocs(p,r));
+    docs.splice(0,docs.length,...(savedDocs||makeDocs(p,r)));
     $('#docList').innerHTML=docs.map(doc=>`<div class="doc-row"><span class="doc-type">${safe(doc.type)}</span><span class="doc-meta"><strong>${safe(doc.title)}</strong><small>${safe(doc.description)}</small></span><button class="doc-view" type="button" data-view="${safe(doc.id)}">Review / edit</button><button class="doc-download" type="button" data-doc="${safe(doc.id)}" aria-label="Download ${safe(doc.title)}" title="Download Markdown">↓</button></div>`).join('');
+    $('#saveStatus').textContent=currentProjectId?`Loaded saved project · ${currentProjectId.slice(0,8)}`:'Unsaved project · save it to keep it on this computer';
     result.scrollIntoView({behavior:'smooth',block:'start'});
   }
-  form.addEventListener('submit',(event)=>{event.preventDefault();if(!form.reportValidity())return;const project=collect();const rec=recommend(project);render(project,rec);});
+  form.addEventListener('submit',(event)=>{event.preventDefault();if(!form.reportValidity())return;const project=collect();const rec=recommend(project);currentProjectId=null;render(project,rec);});
   $('#description').addEventListener('input',()=>$('#charCount').textContent=$('#description').value.length+' / 5000');
   $('#docList').addEventListener('click',(event)=>{const view=event.target.closest('[data-view]');if(view){activeDocument=docs.find(d=>d.id===view.dataset.view);if(activeDocument){$('#dialogTitle').textContent=activeDocument.title;$('#documentEditor').value=activeDocument.content;$('#documentDialog').showModal();}return;}const button=event.target.closest('[data-doc]');if(!button)return;const doc=docs.find(d=>d.id===button.dataset.doc);if(doc){download(`${slug(collect().name)}-${doc.id}.md`,doc.content);toast(`${doc.title} downloaded`);}});
-  $('#saveDoc').addEventListener('click',()=>{if(!activeDocument)return;activeDocument.content=$('#documentEditor').value;$('#documentDialog').close();toast(`${activeDocument.title} updated for this session`);});
+  $('#saveDoc').addEventListener('click',()=>{if(!activeDocument)return;activeDocument.content=$('#documentEditor').value;$('#documentDialog').close();$('#saveStatus').textContent='Document edited · save project to persist this change';toast(`${activeDocument.title} updated for this session`);});
   $('#downloadCurrent').addEventListener('click',()=>{if(!activeDocument)return;download(`${slug(collect().name)}-${activeDocument.id}.md`,$('#documentEditor').value);toast(`${activeDocument.title} downloaded`);});
   $('#downloadAll').addEventListener('click',()=>{if(!docs.length)return;const combined=`# ${collect().name} — Project Document Pack\n\nGenerated as draft project-planning documents. Review before use.\n\n${docs.map(d=>'\n\n---\n\n'+d.content).join('')}`;download(`${slug(collect().name)}-project-document-pack.md`,combined);toast('Project document pack downloaded');});
+  async function apiRequest(path,options={}) {
+    const response=await fetch(path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
+    const result=await response.json().catch(()=>({error:'The local project service returned an unreadable response.'}));
+    if(!response.ok)throw new Error(result.error||`Request failed (${response.status}).`);
+    return result;
+  }
+  async function refreshSavedProjects() {
+    try {
+      const items=await apiRequest('/api/projects');
+      const select=$('#savedProjects');
+      select.innerHTML='<option value="">Load a saved project…</option>'+items.map(item=>`<option value="${safe(item.id)}">${safe(item.name)} · ${safe(item.domain)} · ${new Date(item.updatedAt).toLocaleDateString()}</option>`).join('');
+      $('#saveStatus').textContent=items.length?`Local project service ready · ${items.length} saved project${items.length===1?'':'s'}`:'Local project service ready · no saved projects yet';
+    } catch {
+      $('#saveStatus').textContent=location.protocol==='file:'?'Start the backend with “npm start” to save projects.':'Local project service unavailable · start it with “npm start”';
+    }
+  }
+  $('#saveProject').addEventListener('click',async()=>{
+    if(!currentProject||!currentRecommendation){toast('Generate an analysis before saving');return;}
+    const latestInput=collect();
+    if(JSON.stringify(latestInput)!==JSON.stringify(currentProject)){toast('Project details changed · generate a fresh analysis before saving');return;}
+    const button=$('#saveProject');button.disabled=true;
+    try {
+      const snapshot={project:currentProject,recommendation:currentRecommendation,docs};
+      const record=await apiRequest(currentProjectId?`/api/projects/${encodeURIComponent(currentProjectId)}`:'/api/projects',{method:currentProjectId?'PUT':'POST',body:JSON.stringify(snapshot)});
+      currentProjectId=record.id;$('#saveStatus').textContent=`Saved locally · ${new Date(record.updatedAt).toLocaleString()}`;
+      await refreshSavedProjects();$('#savedProjects').value=currentProjectId;$('#saveStatus').textContent=`Saved “${currentProject.name}” on this computer`;
+      toast('Project and documents saved locally');
+    } catch(error) { $('#saveStatus').textContent=error.message;toast('Could not save project'); }
+    finally { button.disabled=false; }
+  });
+  $('#loadProject').addEventListener('click',async()=>{
+    const id=$('#savedProjects').value;if(!id){toast('Choose a saved project first');return;}
+    try {
+      const saved=await apiRequest(`/api/projects/${encodeURIComponent(id)}`);
+      currentProjectId=saved.id;
+      $('#projectName').value=saved.project.name;$('#domain').value=saved.project.domain;$('#jurisdiction').value=saved.project.jurisdiction==='To be confirmed'?'':saved.project.jurisdiction;
+      $('#description').value=saved.project.description;$('#charCount').textContent=saved.project.description.length+' / 5000';
+      $('#volatility').value=saved.project.volatility;$('#risk').value=saved.project.risk;$('#delivery').value=saved.project.delivery;
+      render(saved.project,saved.recommendation,saved.docs);toast('Saved project loaded');
+    } catch(error) { $('#saveStatus').textContent=error.message;toast('Could not load project'); }
+  });
   $('#printBtn').addEventListener('click',()=>window.print());
-  $('#resetBtn').addEventListener('click',()=>{form.reset();$('#charCount').textContent='0 / 5000';$('#results').classList.add('hidden');docs.length=0;activeDocument=null;$('#projectName').focus();window.scrollTo({top:0,behavior:'smooth'});});
+  $('#resetBtn').addEventListener('click',()=>{form.reset();$('#charCount').textContent='0 / 5000';$('#results').classList.add('hidden');docs.length=0;activeDocument=null;currentProjectId=null;currentProject=null;currentRecommendation=null;$('#projectName').focus();window.scrollTo({top:0,behavior:'smooth'});});
+  if(location.protocol==='http:'||location.protocol==='https:')refreshSavedProjects();
 })();
